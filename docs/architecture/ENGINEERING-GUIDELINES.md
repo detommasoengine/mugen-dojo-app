@@ -160,6 +160,9 @@ Formato: [Conventional Commits](https://www.conventionalcommits.org/)
 | `chore` | Configurazione, tooling, dipendenze |
 | `db` | Migration database |
 
+#### Regola Aurea dei Commit Progressivi
+Ogni progressione logica di sviluppo (es. "scaffolding monorepo", "configurazione database", "creazione componente X") DEVE aver il suo commit dedicato prima di passare al blocco successivo. **Vietati** i commit monolitici di fine giornata. Questa prassi permette ad AI agenti e umani di ritornare ad uno status funzionante facilmente in caso di bug.
+
 **Scopes consentiti**: `mobile`, `admin`, `shared`, `supabase`, `docs`, `root`
 
 **Esempi**:

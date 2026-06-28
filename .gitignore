@@ -56,7 +56,9 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.local
 .env.test
+.env.*.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -90,3 +92,6 @@ web-build/
 
 # Turborepo
 .turbo/
+
+# Local dev secrets (Supabase keys, S3 secrets) — never commit
+docs/environment/

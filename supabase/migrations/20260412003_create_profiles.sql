@@ -92,6 +92,26 @@ CREATE POLICY "Head master manages dojo profiles"
     )
   );
 
+-- RLS policies for dojos (defined here because they reference profiles)
+-- All authenticated users can read their own dojo (via profiles)
+CREATE POLICY "Users can view their own dojo"
+  ON dojos FOR SELECT
+  USING (
+    id IN (SELECT get_user_dojo_ids())
+  );
+
+-- Only head_master can update dojo settings
+CREATE POLICY "Head master can update dojo"
+  ON dojos FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.dojo_id = dojos.id
+      AND profiles.user_id = auth.uid()
+      AND profiles.role = 'head_master'
+    )
+  );
+
 -- ROLLBACK:
 -- DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
 -- DROP TABLE IF EXISTS profiles CASCADE;

@@ -129,7 +129,30 @@ Attributi aggiuntivi:
 
 ### Comunicazione
 - Annunci ufficiali dal Caposcuola/Segretario
-- Destinatari: tutti, per grado, individuali (da definire)
+- Destinatari: **broadcast, per gruppo (range gradi/etichette), individuali** (decisione D.1)
+- I messaggi individuali e il tracciamento lettura usano `communication_recipients`
+
+## Aggiornamenti modello — decisioni 2026-06-27
+
+Esiti dell'intervista decisioni di dominio (vedi [07-domande-stakeholder](07-domande-stakeholder.md)). Mapping dominio→DB secondo [ENGINEERING-GUIDELINES](../architecture/ENGINEERING-GUIDELINES.md).
+
+| Concetto dominio | Codice / DB | Note |
+|---|---|---|
+| **Ospite generico** | `Role.GUEST` → `user_role = 'guest'` | Partecipa a eventi aperti, nessun percorso-grado (C.2) |
+| **Aikidoka guest** | `profiles.is_guest boolean` | Praticante identitario esterno al Dojo (C.2) |
+| **Sotto-ruoli con permessi** | generalizzazione di `secretary_permissions` → incarichi con flag (es. `can_view_payments`, `can_manage_payments`) | Es. "cassiere" (C.5) |
+| **Sessione di check-in** | `attendance_sessions` (`event_id`, `token_hash`, `expires_at`, geo opz.) | QR dinamico rotante HMAC + QR stampato (REQ-004 / DP-1,2,4) |
+| **Template stagionali** | `lesson_templates.valid_from` / `valid_to` (+ `season_label`) | Orario estivo/invernale (B.2) |
+| **Limite assenze** | `dojos.max_absences_default` + override per grado su `exam_requirements` | Incide sull'idoneità esame (B.3) |
+| **Certificato medico** | `profiles.medical_cert_expiry`, `medical_cert_file_path` | Scadenza + promemoria (E.1) |
+| **Stato quote/pagamenti** | `membership_status` (tessera Aikikai, quota Dojo) | Solo tracciamento; gestione completa = follow-up (E.2/E.3, sez. I) |
+| **Notifiche** | `notifications`, `push_tokens` | Email + push Expo (D.2) |
+| **Destinatari comunicazioni** | `communication_recipients` (`read_at`) | Messaggi individuali + lettura (D.1) |
+| **Infra AI** | estensione `vector` (pgvector); tabella `knowledge_chunks` rimandata | Assistente AI fase futura (G.2/F.4) |
+
+**Già coperti dallo schema (solo UI/logica, nessun delta)**: eventi differenziati per grado (`events.grade_filter_*` + `event_grade_exceptions`, B.1); glossario per grado (`glossary_entries.min_grade`, G.1); Progetti/Laboratori (`projects`/`project_members`, H.1/H.2).
+
+**Multi-tenant (C.3)**: il Dojo resta l'insieme chiuso; `dojo_id` + RLS già garantiscono l'isolamento. Monte ore separato per Dojo. La federazione (più Dojo affiliati) è scalabilità futura → [ADR-002].
 
 ## Regole di business chiave
 
@@ -146,8 +169,8 @@ Attributi aggiuntivi:
 ## Relazioni da approfondire
 
 - [x] Risorse di studio — due livelli: didattiche (Sensei/Segretario) e personali (Aikidoka)
-- [ ] Comunicazioni ufficiali — broadcast, per gruppo, individuali?
+- [x] Comunicazioni ufficiali — broadcast + per gruppo + individuali (D.1, 2026-06-27)
 - [x] Storico passaggi di grado — entità separata con date nella Scheda
-- [ ] Multi-Dojo — un Aikidoka può appartenere a più Dojo?
-- [ ] Glossario interattivo — come si collega alla sezione didattica dell'app?
-- [ ] Knowledge Base AI — come si alimenta dai documenti caricati?
+- [x] Multi-Dojo — Dojo come insieme chiuso ora; federazione = scalabilità futura (C.3, [ADR-002])
+- [x] Glossario interattivo — navigabile per grado + ricerca, già a schema (G.1, 2026-06-27)
+- [ ] Knowledge Base AI — come si alimenta dai documenti caricati? (fase AI dedicata, [ADR-006])

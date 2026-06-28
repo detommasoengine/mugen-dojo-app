@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS attendances (
 CREATE INDEX idx_attendances_profile ON attendances(profile_id, created_at);
 CREATE INDEX idx_attendances_event ON attendances(event_id);
 CREATE INDEX idx_attendances_dojo_date ON attendances(dojo_id, created_at);
-CREATE INDEX idx_attendances_status ON attendances(dojo_id, status);
+-- Partial index for pending confirmations queue (avoids full-scan on low-cardinality status column)
+CREATE INDEX idx_attendances_pending ON attendances(dojo_id, created_at)
+  WHERE status = 'registered';
 
 CREATE TRIGGER attendances_updated_at
   BEFORE UPDATE ON attendances

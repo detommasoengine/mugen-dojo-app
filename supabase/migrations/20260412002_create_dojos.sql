@@ -40,29 +40,8 @@ CREATE TRIGGER dojos_updated_at
 
 -- RLS
 ALTER TABLE dojos ENABLE ROW LEVEL SECURITY;
-
--- All authenticated users can read their own dojo (via profiles)
-CREATE POLICY "Users can view their own dojo"
-  ON dojos FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.dojo_id = dojos.id
-      AND profiles.user_id = auth.uid()
-    )
-  );
-
--- Only head_master can update dojo settings
-CREATE POLICY "Head master can update dojo"
-  ON dojos FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.dojo_id = dojos.id
-      AND profiles.user_id = auth.uid()
-      AND profiles.role = 'head_master'
-    )
-  );
+-- NOTE: RLS policies that reference `profiles` are defined in 003_create_profiles.sql
+-- (after the profiles table exists) to avoid circular dependency.
 
 -- ROLLBACK:
 -- DROP TRIGGER IF EXISTS dojos_updated_at ON dojos;

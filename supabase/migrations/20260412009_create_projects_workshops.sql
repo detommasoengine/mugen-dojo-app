@@ -46,7 +46,13 @@ CREATE TABLE IF NOT EXISTS project_members (
   enrolled_at     timestamptz NOT NULL DEFAULT now(),
   is_active       boolean NOT NULL DEFAULT true,
 
-  UNIQUE (project_id, profile_id)
+  UNIQUE (project_id, profile_id),
+  -- Either an internal profile OR an external participant (name required)
+  CONSTRAINT chk_project_member_identity
+    CHECK (
+      (profile_id IS NOT NULL AND external_name IS NULL)
+      OR (profile_id IS NULL AND external_name IS NOT NULL)
+    )
 );
 
 -- Project grade exceptions

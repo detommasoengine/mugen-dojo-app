@@ -82,8 +82,36 @@ Questo documento traccia le sessioni di briefing e le decisioni prese progressiv
 16. Per l'assistente AI: Google Gemini è la preferenza o valutiamo anche altri?
 
 ### Prossimi passi
-- [ ] Rispondere alle domande ancora aperte
-- [ ] Decidere lo stack tecnologico definitivo (ADR-001)
+- [x] ~~Rispondere alle domande ancora aperte~~ → Parzialmente: stack definitivo scelto (Supabase + Expo + Next.js)
+- [x] ~~Decidere lo stack tecnologico definitivo (ADR-001)~~ → ADR-001 completato
 - [ ] Definire wireframe delle schermate principali
-- [ ] Progettare lo schema del database
-- [ ] Definire le API
+- [x] ~~Progettare lo schema del database~~ → 10 migration SQL complete + RLS
+- [ ] Definire le API (Supabase auto-genera le REST API; Edge Functions da progettare)
+
+---
+
+## Sessione 3 — 2026-04-16 — Setup Ambiente di Sviluppo Locale (Sessione 001 Dev)
+
+### Cosa è stato fatto
+Prima sessione di sviluppo attivo dopo il briefing. Stack completamente portato da scaffolding a ambiente locale funzionante.
+
+**Risultati principali:**
+- Supabase locale avviato con tutte le 10 migration applicate e seed con 3 utenti test
+- App Admin (Next.js): login funzionante + dashboard protetta
+- App Mobile (Expo): Metro configurato per monorepo, web OK — Expo Go Android con issue rete aperta
+- 7 bug nelle migration corretti prima del primo avvio
+- Naming convention migration corretta: `YYYYMMDDNNN_` (senza underscore data-seq)
+
+**Log dettagliato**: `docs/sessions/2026-04-16_session-001_initial-setup-and-devenv.md`
+**Handoff aggiornato**: `docs/project-management/HANDOFF-20260416.md`
+
+### Stato Milestone dopo sessione
+- **M1**: ✅ Completata
+- **M2**: In corso — admin auth completo, manca login mobile
+- **M3/M4**: Backlog
+
+### Prossimi passi
+- [ ] Creare login screen mobile (`apps/mobile/app/login.tsx`)
+- [ ] Struttura tab principale mobile (Presenze, Calendario, Profilo, Diario)
+- [ ] Rigenerare tipi TypeScript: `pnpm run db:types`
+- [ ] Fix `@react-native-async-storage/async-storage` → `2.2.0`

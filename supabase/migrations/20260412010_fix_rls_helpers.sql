@@ -207,6 +207,7 @@ CREATE POLICY "Users can register own attendance"
   ON attendances FOR INSERT
   WITH CHECK (
     profile_id IN (SELECT get_user_profile_ids())
+    AND dojo_id IN (SELECT get_user_dojo_ids())
     AND status = 'registered'
     AND event_role = 'participant'
   );
@@ -367,6 +368,16 @@ CREATE POLICY "Dojo members can view published communications"
 CREATE POLICY "Head master manages communications"
   ON communications FOR ALL
   USING (is_head_master_of(dojo_id));
+
+-- Secretary with send permission can insert/update communications (drafts)
+CREATE POLICY "Secretary with permission can manage communications"
+  ON communications FOR ALL
+  USING (EXISTS (
+    SELECT 1 FROM secretary_permissions sp
+    WHERE sp.profile_id IN (SELECT get_user_profile_ids())
+    AND sp.dojo_id = communications.dojo_id
+    AND sp.can_send_communications = true
+  ));
 
 -- ============================================================================
 -- ROLLBACK:

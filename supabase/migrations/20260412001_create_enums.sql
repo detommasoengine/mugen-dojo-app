@@ -67,7 +67,7 @@ CREATE TYPE access_level AS ENUM (
   'filtered'       -- Filtered by grade/criteria
 );
 
--- Workshop frequency
+-- Workshop frequency (reserved for future workshops table — not used by any column yet)
 CREATE TYPE workshop_frequency AS ENUM (
   'one_time',      -- Occasionale
   'periodic',      -- Periodico

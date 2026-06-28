@@ -19,7 +19,6 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    // Lazy-init: avoids pre-render crash when env vars aren't available at build time
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -32,26 +31,25 @@ export default function LoginPage() {
     }
   }
 
-
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="w-full max-w-md">
-        {/* Logo / Brand */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 mb-4 shadow-lg shadow-indigo-500/30">
-            <span className="text-white text-2xl font-bold">無</span>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm">
+        {/* Brand */}
+        <div className="mb-10 text-center">
+          <div className="mb-5 inline-flex size-16 items-center justify-center rounded-2xl bg-ai-deep font-display text-3xl text-washi-raised shadow-lg">
+            無
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">MugenDojo</h1>
-          <p className="text-slate-400 mt-1 text-sm">Pannello Amministrazione</p>
+          <h1 className="font-display text-3xl tracking-tight">MugenDojo</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Pannello Amministrazione</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-xl font-semibold text-white mb-6">Accedi</h2>
+        {/* Card */}
+        <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+          <h2 className="mb-6 text-lg font-semibold">Accedi</h2>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
                 Email
               </label>
               <input
@@ -62,12 +60,12 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="sensei@mugendojo.it"
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900/70 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="w-full rounded-md border border-border bg-washi px-3.5 py-2.5 text-foreground placeholder-muted-foreground transition focus:border-ai focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
                 Password
               </label>
               <input
@@ -78,12 +76,12 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900/70 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="w-full rounded-md border border-border bg-washi px-3.5 py-2.5 text-foreground placeholder-muted-foreground transition focus:border-ai focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400">
+              <div className="rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
                 {error}
               </div>
             )}
@@ -92,15 +90,15 @@ export default function LoginPage() {
               id="login-submit"
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold transition-colors shadow-lg shadow-indigo-500/20"
+              className="w-full rounded-md bg-primary px-4 py-2.5 font-medium text-primary-foreground transition-colors hover:bg-ai-deep disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Accesso in corso…' : 'Accedi al Dojo'}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          MugenDojo Admin Panel · {new Date().getFullYear()}
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          MugenDojo · {new Date().getFullYear()}
         </p>
       </div>
     </main>

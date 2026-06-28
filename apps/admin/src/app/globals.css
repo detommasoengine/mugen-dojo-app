@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * MugenDojo Admin — «Sumi & Ai» (墨と藍)
+ * Light, washi-first. Inchiostro (sumi) + indaco aizome (ai), sigillo shu.
+ */
+@theme {
+  /* Palette */
+  --color-sumi: #1b1a17;       /* inchiostro — testo */
+  --color-ai: #20374d;         /* indaco aizome — brand */
+  --color-ai-deep: #14222f;    /* indaco profondo */
+  --color-washi: #e9eae4;      /* carta di riso — sfondo */
+  --color-washi-raised: #f3f2ed;
+  --color-shu: #c7402a;        /* vermiglio del sigillo — accento */
+  --color-tatami: #9a9367;     /* paglia muta — data-viz */
+
+  /* Semantica */
+  --color-background: var(--color-washi);
+  --color-foreground: var(--color-sumi);
+  --color-card: var(--color-washi-raised);
+  --color-muted: #d9dad2;
+  --color-muted-foreground: #6b6862;
+  --color-border: #d3d5cc;
+  --color-primary: var(--color-ai);
+  --color-primary-foreground: var(--color-washi-raised);
+  --color-accent: var(--color-shu);
+  --color-ring: var(--color-ai);
+
+  /* Colori cintura (grade chips) */
+  --color-belt-white: #f1efe7;
+  --color-belt-yellow: #e3b43a;
+  --color-belt-orange: #d6792b;
+  --color-belt-green: #4e7b4b;
+  --color-belt-blue: #2e5a86;
+  --color-belt-brown: #6b4a2b;
+  --color-belt-black: #1b1a17;
+
+  /* Tipografia (var iniettate da next/font) */
+  --font-display: var(--font-zen-mincho), "Times New Roman", serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  /* Focus visibile (quality floor) */
+  :focus-visible {
+    outline: 2px solid var(--color-ai);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-shu) 22%, transparent);
+  }
 }

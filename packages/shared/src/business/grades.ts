@@ -29,3 +29,31 @@ export function isKyu(grade: GradeType): boolean {
 export function isDan(grade: GradeType): boolean {
   return grade.startsWith('dan_');
 }
+
+export type BeltColor =
+  | 'white' | 'yellow' | 'orange' | 'green' | 'blue' | 'brown' | 'black';
+
+/**
+ * Belt color associated with a grade. Used by the UI (grade chips, the enso
+ * Monte Ore gauge). Dan grades are all black; Kyu descend through the colors.
+ */
+export function gradeBeltColor(grade: GradeType): BeltColor {
+  if (isDan(grade)) return 'black';
+  switch (grade) {
+    case 'none':
+    case 'kyu_6':
+      return 'white';
+    case 'kyu_5':
+      return 'yellow';
+    case 'kyu_4':
+      return 'orange';
+    case 'kyu_3':
+      return 'green';
+    case 'kyu_2':
+      return 'blue';
+    case 'kyu_1':
+      return 'brown';
+    default:
+      return 'white';
+  }
+}

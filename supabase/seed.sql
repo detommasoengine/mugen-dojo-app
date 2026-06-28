@@ -14,6 +14,13 @@ DECLARE
   v_user_student_id uuid := 'a1b2c3d4-0003-0003-0003-000000000003';
   v_dojo_id         uuid := 'dddddddd-dddd-dddd-dddd-000000000001';
   v_profile_senpai  uuid;
+  v_profile_sensei  uuid;
+  v_profile_student uuid;
+  v_ev1 uuid := gen_random_uuid();
+  v_ev2 uuid := gen_random_uuid();
+  v_ev3 uuid := gen_random_uuid();
+  v_ev4 uuid := gen_random_uuid();
+  v_ev5 uuid := gen_random_uuid();
 BEGIN
 
   -- ────────────────────────────────────────────────────────────────────────────
@@ -138,6 +145,52 @@ BEGIN
     INSERT INTO secretary_permissions (profile_id, dojo_id, can_view_all_attendance, can_confirm_attendance, can_send_communications)
     VALUES (v_profile_senpai, v_dojo_id, true, true, true)
     ON CONFLICT (profile_id, dojo_id) DO NOTHING;
+  END IF;
+
+  -- ────────────────────────────────────────────────────────────────────────────
+  -- 5. EVENTS + ATTENDANCES (so the dashboard / enso gauge show real data)
+  -- ────────────────────────────────────────────────────────────────────────────
+
+  SELECT id INTO v_profile_sensei  FROM profiles WHERE user_id = v_user_sensei_id  AND dojo_id = v_dojo_id;
+  SELECT id INTO v_profile_student FROM profiles WHERE user_id = v_user_student_id AND dojo_id = v_dojo_id;
+
+  INSERT INTO events (id, dojo_id, type, title, starts_at, ends_at, duration_hours, event_weight)
+  VALUES
+    (v_ev1, v_dojo_id, 'lesson',    'Lezione regolare',        '2026-09-07 19:00+02', '2026-09-07 20:00+02', 1, 1.0),
+    (v_ev2, v_dojo_id, 'stage',     'Stage autunnale',         '2026-10-18 10:00+02', '2026-10-18 16:00+02', 6, 1.5),
+    (v_ev3, v_dojo_id, 'gathering', 'Raduno Ki no Renma',      '2026-11-15 09:00+01', '2026-11-15 17:00+01', 8, 1.5),
+    (v_ev4, v_dojo_id, 'stage',     'Stage invernale',         '2026-12-13 10:00+01', '2026-12-13 16:00+01', 6, 1.5),
+    (v_ev5, v_dojo_id, 'gathering', 'Raduno di Primavera',     '2027-04-18 09:00+02', '2027-04-18 17:00+02', 8, 1.5)
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Sensei (Caposcuola, dan_3 → dan_4): conduce e partecipa, monte ore alto
+  INSERT INTO attendances (dojo_id, profile_id, event_id, effective_hours, weighted_hours, event_role, method, status, confirmed_by, confirmed_at)
+  VALUES
+    (v_dojo_id, v_profile_sensei, v_ev1, 1, 60, 'conductor',   'roll_call', 'confirmed', v_profile_sensei, now()),
+    (v_dojo_id, v_profile_sensei, v_ev2, 6, 50, 'participant', 'roll_call', 'confirmed', v_profile_sensei, now()),
+    (v_dojo_id, v_profile_sensei, v_ev3, 8, 45, 'participant', 'roll_call', 'confirmed', v_profile_sensei, now()),
+    (v_dojo_id, v_profile_sensei, v_ev4, 6, 35, 'participant', 'roll_call', 'confirmed', v_profile_sensei, now()),
+    (v_dojo_id, v_profile_sensei, v_ev5, 8, 20, 'participant', 'roll_call', 'confirmed', v_profile_sensei, now())
+  ON CONFLICT (profile_id, event_id) DO NOTHING;
+
+  -- Studente (Aikidoka, kyu_4 → kyu_3, requisito 90h): ~62h
+  IF v_profile_student IS NOT NULL THEN
+    INSERT INTO attendances (dojo_id, profile_id, event_id, effective_hours, weighted_hours, event_role, method, status, confirmed_by, confirmed_at)
+    VALUES
+      (v_dojo_id, v_profile_student, v_ev2, 6, 18, 'participant', 'qr_code', 'confirmed', v_profile_sensei, now()),
+      (v_dojo_id, v_profile_student, v_ev3, 8, 16, 'participant', 'qr_code', 'confirmed', v_profile_sensei, now()),
+      (v_dojo_id, v_profile_student, v_ev4, 6, 16, 'participant', 'qr_code', 'confirmed', v_profile_sensei, now()),
+      (v_dojo_id, v_profile_student, v_ev5, 8, 12, 'participant', 'qr_code', 'confirmed', v_profile_sensei, now())
+    ON CONFLICT (profile_id, event_id) DO NOTHING;
+  END IF;
+
+  -- Senpai (Segretario, kyu_1 → dan_1, requisito 200h): ~75h
+  IF v_profile_senpai IS NOT NULL THEN
+    INSERT INTO attendances (dojo_id, profile_id, event_id, effective_hours, weighted_hours, event_role, method, status, confirmed_by, confirmed_at)
+    VALUES
+      (v_dojo_id, v_profile_senpai, v_ev2, 6, 40, 'participant', 'roll_call', 'confirmed', v_profile_sensei, now()),
+      (v_dojo_id, v_profile_senpai, v_ev3, 8, 35, 'participant', 'roll_call', 'confirmed', v_profile_sensei, now())
+    ON CONFLICT (profile_id, event_id) DO NOTHING;
   END IF;
 
 END $$;

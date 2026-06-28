@@ -99,3 +99,6 @@ docs/environment/
 # Browser automation artifacts (Playwright MCP / screenshots)
 .playwright-mcp/
 /login-sumi-ai.png
+
+# Agentic workspace — handoffs, session logs, reviews, prompts (local only)
+.agent/

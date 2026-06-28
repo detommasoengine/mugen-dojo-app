@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GRADE_ORDER, gradeIndex, nextGrade, isKyu, isDan } from './grades';
+import { GRADE_ORDER, gradeIndex, nextGrade, isKyu, isDan, gradeBeltColor } from './grades';
 
 describe('grade ordering', () => {
   it('orders none → kyu_6..kyu_1 → dan_1..dan_7', () => {
@@ -40,3 +40,16 @@ describe('isKyu / isDan', () => {
     expect(isDan('kyu_1')).toBe(false);
   });
 });
+
+describe('gradeBeltColor', () => {
+  it('maps kyu grades through the belt colors', () => {
+    expect(gradeBeltColor('none')).toBe('white');
+    expect(gradeBeltColor('kyu_4')).toBe('orange');
+    expect(gradeBeltColor('kyu_1')).toBe('brown');
+  });
+  it('maps all dan grades to black', () => {
+    expect(gradeBeltColor('dan_1')).toBe('black');
+    expect(gradeBeltColor('dan_5')).toBe('black');
+  });
+});
+

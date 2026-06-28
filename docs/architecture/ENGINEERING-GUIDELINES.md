@@ -315,6 +315,22 @@ SUPABASE_ANON_KEY=your-anon-key
 - **Aggiornamenti**: usare `pnpm update -r` o aggiornare manualmente, mai in mezzo a una feature.
 - **Lock file**: `pnpm-lock.yaml` va sempre committato (non usare package-lock.json).
 
+### 6.5 — Validatori Zod (dove e quando)
+
+**Perché lo stack** — Deciso in [ADR-001](../decisions/ADR-001-stack-tecnologico.md): Zod vive in `packages/shared/src/validators/` ed è la **single source of truth** per la validazione condivisa dalle due app (si scrive una volta, si usa ovunque) e per l'inferenza dei tipi di input. È l'esecuzione della regola di **validazione doppia** (§8.1.3): Zod al boundary + constraint DB.
+
+**Dove applicare la validazione**:
+- **Form** (admin + mobile): create/update di profilo, evento, presenza, configurazione Dojo, permessi, comunicazioni.
+- **Input non fidato**: payload del token di check-in QR/NFC (REQ-004 / [ADR-004](../decisions/ADR-004-check-in-presenze.md)), deep link, query di ricerca.
+- **Edge Functions** (futuro): validare il body prima di ogni operazione.
+- **Invarianti di dominio** non coperti da un singolo constraint: `ends_at > starts_at`, `grade_filter_min <= grade_filter_max`, pesi/ore `>= 0`.
+
+**Quando**:
+- **Ora**: schemi per le entità a **schema stabile** (già migrato) + gli input della business logic (ore/esami).
+- **Rinviato**: gli schemi dietro migration pendenti (`guest`, `attendance_sessions`, `notifications`…) seguono il relativo delta schema (evita drift). I `*Schema` sono allineati agli enum DB tramite guard `satisfies` a compile-time.
+
+**Convenzioni**: file `camelCase`, export `xxxSchema` + tipo inferito `XxxInput` (vedi §3 naming). Logica di business assume input già validato; Zod fa da guardia.
+
 ---
 
 ## 7. Testing

@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS events (
   exam_target_grade  grade_type,
 
   -- Project link (for workshops)
-  project_id      uuid,  -- FK added in migration 008
+  project_id      uuid,  -- FK added in migration 009 (after projects table exists)
 
   is_cancelled    boolean NOT NULL DEFAULT false,
 

@@ -203,7 +203,7 @@ chore(root): configure turborepo caching
 
 1. **Ogni modifica allo schema DB è una migration separata**
 2. **Mai modificare una migration già committata** — crearne una nuova
-3. **Naming**: `YYYYMMDD_NNN_descrizione.sql` (es. `20260411_001_create_users.sql`)
+3. **Naming**: `YYYYMMDDNNN_descrizione.sql` (es. `20260412001_create_users.sql`) — nessun underscore tra data e sequenza, così Supabase legge ogni version come numero univoco
 4. **Ogni migration deve essere idempotente dove possibile** (es. `CREATE TABLE IF NOT EXISTS`)
 5. **Includere sempre il rollback** come commento in fondo al file
 6. **RLS policies**: definite nella stessa migration della tabella corrispondente

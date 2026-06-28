@@ -9,7 +9,7 @@ import type {
  * corresponding TS union in database.types.
  */
 export const userRoleSchema = z.enum(
-  ['head_master', 'secretary', 'aikidoka'] satisfies readonly UserRole[] as [UserRole, ...UserRole[]],
+  ['head_master', 'secretary', 'aikidoka', 'guest'] satisfies readonly UserRole[] as [UserRole, ...UserRole[]],
 );
 
 export const gradeTypeSchema = z.enum(

@@ -17,7 +17,7 @@ export type Json =
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'head_master' | 'secretary' | 'aikidoka';
+export type UserRole = 'head_master' | 'secretary' | 'aikidoka' | 'guest';
 export type GradeType =
   | 'none'
   | 'kyu_6' | 'kyu_5' | 'kyu_4' | 'kyu_3' | 'kyu_2' | 'kyu_1'
@@ -63,7 +63,9 @@ export interface Profile {
   current_grade: GradeType;
   enrollment_date: string;
   can_conduct: boolean;
+  is_guest: boolean;
   medical_cert_expiry: string | null;
+  medical_cert_file_path: string | null;
   booklet_type: 'green' | 'blue' | 'national' | null;
   is_active: boolean;
   created_at: string;

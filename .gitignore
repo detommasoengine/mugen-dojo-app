@@ -95,3 +95,7 @@ web-build/
 
 # Local dev secrets (Supabase keys, S3 secrets) — never commit
 docs/environment/
+
+# Browser automation artifacts (Playwright MCP / screenshots)
+.playwright-mcp/
+/login-sumi-ai.png

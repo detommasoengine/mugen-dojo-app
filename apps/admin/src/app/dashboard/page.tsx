@@ -9,17 +9,6 @@ import { EnsoHourGauge } from "@/components/enso-hour-gauge";
 import { gradeLabel } from "@/lib/grade-label";
 import { Card, CardContent, CardLabel } from "@/components/ui/card";
 
-// Local row shapes — the hand-written Database stub lacks Relationships, so
-// supabase-js select inference degrades to `never`. Cast results explicitly
-// until we switch to generated types (see plan follow-up).
-type ProfileRow = {
-  id: string;
-  first_name: string;
-  current_grade: GradeType;
-  enrollment_date: string | null;
-  dojo_id: string;
-};
-
 function monthsSince(dateStr: string | null): number {
   if (!dateStr) return 0;
   const d = new Date(dateStr);
@@ -59,12 +48,11 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("id, first_name, current_grade, enrollment_date, dojo_id")
     .eq("user_id", user.id)
     .single();
-  const profile = profileData as ProfileRow | null;
 
   if (!profile) {
     return (
@@ -79,7 +67,7 @@ export default async function DashboardPage() {
     .select("weighted_hours")
     .eq("profile_id", profile.id)
     .eq("status", "confirmed");
-  const attendanceRows = (attData ?? []) as { weighted_hours: number }[];
+  const attendanceRows = attData ?? [];
 
   const accumulatedHours = attendanceRows.reduce(
     (sum, r) => sum + Number(r.weighted_hours),

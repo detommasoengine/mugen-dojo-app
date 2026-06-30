@@ -15,7 +15,7 @@
     "db:stop": "npx --yes supabase@latest stop",
     "db:migrate": "npx --yes supabase@latest db push",
     "db:reset": "npx --yes supabase@latest db reset",
-    "db:types": "npx --yes supabase@latest gen types typescript --local > packages/shared/src/types/database.types.ts",
+    "db:types": "npx --yes supabase@latest gen types typescript --local > packages/shared/src/database.generated.ts",
     "db:status": "npx --yes supabase@latest status",
     "postinstall": "node -e \"const fs=require('fs'),p='node_modules/lightningcss/lightningcss.linux-x64-gnu.node',t='node_modules/lightningcss-linux-x64-gnu/lightningcss.linux-x64-gnu.node';if(!fs.existsSync(p)&&fs.existsSync(t))fs.symlinkSync(require('path').resolve(t),p);console.log('postinstall: lightningcss native binary linked')\""
   },

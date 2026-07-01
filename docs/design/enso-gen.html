@@ -6,106 +6,127 @@
 <body>
 <canvas id="c" width="1024" height="1024"></canvas>
 <script>
-// Grayscale sumi enso as a LUMINANCE MASK: white ink on black paper.
-// White => show (belt colour); black => hide. Grain + dry-brush baked in.
+// Grayscale sumi enso LUMINANCE MASK: white ink on black paper.
+// Dense wet body (pastose ink core) + bristle fiber + dry edges + grain.
 const cv = document.getElementById('c');
 const g = cv.getContext('2d');
 const W = 1024, CX = 512, CY = 512, R = 360;
-const A0 = 2.44;          // start angle (~140deg)
-const SPAN = Math.PI * 2 * 0.87;  // ~313deg sweep -> ~47deg opening
-const BAND = 96;          // half-band at the heaviest
+const A0 = 2.44;                    // ~140deg head
+const SPAN = Math.PI * 2 * 0.87;    // ~313deg sweep -> ~47deg opening
+const BAND = 96;
 
 g.fillStyle = '#000'; g.fillRect(0, 0, W, W);
-g.globalCompositeOperation = 'lighter'; // white accumulates
-g.lineCap = 'round';
+g.globalCompositeOperation = 'lighter';
+g.lineCap = 'round'; g.lineJoin = 'round';
 
 function rnd(s){ const x = Math.sin(s*127.1+311.7)*43758.5453; return x - Math.floor(x); }
-// width envelope along t in [0,1]: heavy wet head -> fine tail
 function halfBand(t){
   let w = Math.pow(1 - t, 0.55);
   w = 0.30 + 0.70 * w;
-  if (t > 0.82) w *= Math.max(0.05, (1 - t) / 0.18); // taper to point
-  if (t < 0.04) w *= 0.6 + 0.4 * (t / 0.04);         // rounded head
+  if (t > 0.82) w *= Math.max(0.05, (1 - t) / 0.18);
+  if (t < 0.04) w *= 0.6 + 0.4 * (t / 0.04);
   return BAND * w;
 }
-function inkAlpha(t){
-  // wetter (denser) at head, drier toward tail
-  return (0.9 - 0.55 * t);
+const pt = (t, off) => {
+  const ang = A0 + t * SPAN;
+  const rr = R + off;
+  return [CX + Math.cos(ang) * rr, CY + Math.sin(ang) * rr];
+};
+
+// --- WET BODY: dense pastose core, built by many soft ribbons ---
+for (let pass = 0; pass < 10; pass++){
+  const uc = (rnd(pass * 5 + 1) - 0.5) * 0.5;   // core wander
+  g.beginPath();
+  for (let i = 0; i <= 260; i++){
+    const t = i / 260;
+    const hb = halfBand(t);
+    const [x, y] = pt(t, uc * hb);
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  // width follows the taper; head fat, tail thin
+  g.strokeStyle = 'rgba(255,255,255,0.05)';
+  g.lineWidth = (BAND * 1.15) * (0.85 - 0.15 * pass / 10);
+  g.stroke();
+}
+// denser wet at the head half
+for (let pass = 0; pass < 8; pass++){
+  g.beginPath();
+  for (let i = 0; i <= 160; i++){
+    const t = (i / 160) * 0.5;
+    const [x, y] = pt(t, (rnd(pass+7)-0.5) * halfBand(t) * 0.6);
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.strokeStyle = 'rgba(255,255,255,0.06)';
+  g.lineWidth = BAND * (0.9 - 0.06 * pass);
+  g.stroke();
 }
 
-// --- bristle bundle ---
-const NB = 30, NP = 200;
+// --- BRISTLE FIBER (denser) ---
+const NB = 46, NP = 220;
 for (let b = 0; b < NB; b++){
-  const u = (b / (NB - 1)) * 2 - 1;   // -1..1 across band
+  const u = (b / (NB - 1)) * 2 - 1;
   const edge = Math.abs(u);
   const seed = b * 3.17 + 1;
-  const tEnd = Math.min(1, 1 - 0.16 * edge * rnd(seed));       // outer bristles shorter
-  const tStart = 0.015 * edge * rnd(seed + 9);
-  const over = edge > 0.7 && rnd(seed+4) > 0.6 ? 0.05 : 0;     // whiskers
-  const width = 3.2 - 1.6 * edge + (rnd(seed+2) - 0.5);
+  const tEnd = Math.min(1, 1 - 0.14 * edge * rnd(seed));
+  const tStart = 0.012 * edge * rnd(seed + 9);
+  const over = edge > 0.72 && rnd(seed+4) > 0.6 ? 0.05 : 0;
+  const width = 3.0 - 1.3 * edge + (rnd(seed+2) - 0.5);
   let drawing = false;
   for (let i = 0; i <= NP; i++){
     const t = i / NP;
     if (t < tStart || t > tEnd + over) { drawing = false; continue; }
-    const ang = A0 + t * SPAN;
     const hb = halfBand(t);
-    // per-bristle radial position, fan at head, converge at tail
     const conv = 0.25 + 0.75 * Math.pow(1 - t, 0.7);
-    const wob = Math.sin(t * 26 + seed * 4) * 2.2 * (0.4 + edge);
-    const rr = R + u * hb * conv + wob;
-    const x = CX + Math.cos(ang) * rr;
-    const y = CY + Math.sin(ang) * rr;
-    // dry-brush gaps: skip based on noise, more on outer bristles + tail
+    const wob = Math.sin(t * 26 + seed * 4) * 2.0 * (0.4 + edge);
+    const [x, y] = pt(t, u * hb * conv + wob);
+    // dry gaps: fewer for inner bristles (wet core), more at outer + tail
     const dry = rnd(seed * 5 + i * 0.7);
-    const gapThresh = 0.10 + 0.35 * edge + 0.25 * t;
+    const gapThresh = 0.03 + 0.30 * edge + 0.16 * t;
     if (dry < gapThresh) { drawing = false; continue; }
-    const a = inkAlpha(t) * (0.5 + 0.5 * rnd(seed + i)) * (1 - 0.4 * edge);
+    const a = (0.85 - 0.5 * t) * (0.55 + 0.45 * rnd(seed + i)) * (1 - 0.35 * edge);
     if (!drawing){ g.beginPath(); g.moveTo(x, y); drawing = true; }
     else {
       g.strokeStyle = 'rgba(255,255,255,' + a.toFixed(3) + ')';
-      g.lineWidth = Math.max(0.6, width * (0.7 + 0.6 * rnd(seed + i * 2)));
+      g.lineWidth = Math.max(0.7, width * (0.7 + 0.6 * rnd(seed + i * 2)));
       g.lineTo(x, y); g.stroke();
       g.beginPath(); g.moveTo(x, y);
     }
   }
 }
 
-// --- wet head: soft ink pooling at the start (no spikes) ---
+// --- WET HEAD pooling (soft, no spikes) ---
 (function(){
-  const th = A0 + 0.05 * SPAN;
-  const hx = CX + Math.cos(th) * R, hy = CY + Math.sin(th) * R;
-  const grad = g.createRadialGradient(hx, hy, 4, hx, hy, BAND * 1.15);
-  grad.addColorStop(0, 'rgba(255,255,255,0.55)');
-  grad.addColorStop(0.5, 'rgba(255,255,255,0.18)');
+  const [hx, hy] = pt(0.05, 0);
+  const grad = g.createRadialGradient(hx, hy, 4, hx, hy, BAND * 1.2);
+  grad.addColorStop(0, 'rgba(255,255,255,0.6)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,0.22)');
   grad.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = grad;
-  g.beginPath(); g.arc(hx, hy, BAND * 1.15, 0, Math.PI * 2); g.fill();
-  // short dense bristles fanning through the head
-  for (let k = 0; k < 40; k++){
-    const uu = (rnd(k * 2.3) - 0.5) * 2;
-    g.beginPath();
-    for (let i = 0; i <= 30; i++){
-      const t = 0.005 + (i / 30) * 0.15;
-      const ang = A0 + t * SPAN;
-      const rr = R + uu * halfBand(t) * (0.3 + 0.7 * (1 - i/30)) + Math.sin(i*0.6+k)*1.5;
-      const x = CX + Math.cos(ang) * rr, y = CY + Math.sin(ang) * rr;
-      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
-    }
-    g.strokeStyle = 'rgba(255,255,255,' + (0.12 + 0.10*rnd(k+5)).toFixed(3) + ')';
-    g.lineWidth = 1.2 + rnd(k) * 2.2; g.stroke();
-  }
+  g.beginPath(); g.arc(hx, hy, BAND * 1.2, 0, Math.PI * 2); g.fill();
 })();
 
-// --- fine grain speckle within the band ---
-for (let n = 0; n < 6000; n++){
-  const t = rnd(n * 1.3);
-  const ang = A0 + t * SPAN;
+// --- INK POOLS: soft dark-ink blobs along the band (denser toward head) ---
+for (let n = 0; n < 42; n++){
+  const t = Math.pow(rnd(n * 1.7), 1.6);         // bias to head
   const hb = halfBand(t);
-  const rr = R + (rnd(n * 2.1) - 0.5) * 2 * hb;
-  const x = CX + Math.cos(ang) * rr, y = CY + Math.sin(ang) * rr;
-  const a = 0.06 + 0.18 * rnd(n * 3.7) * (1 - 0.5 * t);
+  const [x, y] = pt(t, (rnd(n * 2.9) - 0.5) * hb * 1.1);
+  const rad = 10 + rnd(n * 3.3) * 40 * (1 - 0.5 * t);
+  const a = 0.10 + 0.22 * rnd(n * 4.1) * (1 - 0.4 * t);
+  const gr = g.createRadialGradient(x, y, 1, x, y, rad);
+  gr.addColorStop(0, 'rgba(255,255,255,' + a.toFixed(3) + ')');
+  gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr;
+  g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+}
+
+// --- fine grain speckle ---
+for (let n = 0; n < 9000; n++){
+  const t = rnd(n * 1.3);
+  const hb = halfBand(t);
+  const [x, y] = pt(t, (rnd(n * 2.1) - 0.5) * 2 * hb);
+  const a = 0.05 + 0.16 * rnd(n * 3.7) * (1 - 0.4 * t);
   g.fillStyle = 'rgba(255,255,255,' + a.toFixed(3) + ')';
-  const s = 0.6 + rnd(n * 4.9) * 1.8;
+  const s = 0.6 + rnd(n * 4.9) * 1.7;
   g.fillRect(x, y, s, s);
 }
 document.title = 'enso-ready';

@@ -17,3 +17,26 @@ export const attendanceCreateSchema = z.object({
 });
 
 export type AttendanceCreateInput = z.infer<typeof attendanceCreateSchema>;
+
+/**
+ * Manual registration form input (Admin). No weighted_hours — the server
+ * computes it from event_weight/conductor_weight before validating with
+ * attendanceCreateSchema and inserting.
+ */
+export const attendanceManualInputSchema = z.object({
+  event_id: z.string().uuid(),
+  profile_id: z.string().uuid(),
+  effective_hours: z.number().positive(),
+  method: attendanceMethodSchema,
+  event_role: eventRoleSchema.default('participant'),
+});
+
+export type AttendanceManualInput = z.infer<typeof attendanceManualInputSchema>;
+
+/** Confirm/reject transition. Excludes 'registered' to block reverting a decision. */
+export const attendanceStatusUpdateSchema = z.object({
+  status: z.enum(['confirmed', 'rejected']),
+  notes: z.string().optional(),
+});
+
+export type AttendanceStatusUpdateInput = z.infer<typeof attendanceStatusUpdateSchema>;

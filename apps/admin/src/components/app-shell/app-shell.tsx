@@ -22,7 +22,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { label: "Presenze", icon: ClipboardCheck },
+  { href: "/dashboard/attendance", label: "Presenze", icon: ClipboardCheck },
   { label: "Calendario", icon: CalendarDays },
   { label: "Esami", icon: Award },
   { label: "Comunicazioni", icon: MessageSquare },

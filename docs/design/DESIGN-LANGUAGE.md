@@ -49,17 +49,22 @@ Mobile (Aikidoka): 3 tab «Bussola del proprio cammino» — **Diario**, **Gloss
 
 ## 5a. Enso «Monte Ore» — realizzazione tecnica
 
-Non un anello geometrico: una **pennellata sumi reale** che l'Aikidoka imprime nel tempo. Metodo (ibrido procedurale) in `apps/admin/src/components/enso-hour-gauge.tsx`, prototipo tunabile in `docs/design/enso-prototype.html`:
+Non un anello geometrico: una **pennellata sumi reale** che l'Aikidoka imprime nel tempo. Architettura **cross-platform (texture + procedurale)** in `apps/admin/src/components/enso-hour-gauge.tsx`.
 
-- **Fascio di setole** (non un tratto pieno): ~22 sotto-pennellate sottili che seguono l'arco. Simula i peli del pennello → setole interne, vuoti *dry-brush*, coda sfrangiata.
-- **Inviluppo di larghezza affusolato**: testa pesante (touch-down bagnato) → assottiglia → coda a punta fine. Le setole si aprono a ventaglio alla testa e convergono in punta alla coda.
-- **Setole esterne più corte e gappy** (`stroke-dasharray` irregolare) = bordi secchi; alcune sfuggono come *whisker*.
-- **Filtro dry-brush**: `feTurbulence`+`feDisplacementMap` (edge organico) + `feComponentTransfer` sull'alpha (vuoti d'inchiostro).
-- **Colore = cintura del grado target** (`gradeBeltColor`); nero sumi al Dan.
-- **Rivelazione progressiva** = maschera ad arco che cresce con le ore (il fascio resta statico → performante); il cerchio si chiude al requisito. `prefers-reduced-motion` → nessuna animazione.
-- **Ghost**: enso completo molto tenue (opacity ~0.06) = "memoria della carta" del cammino da compiere.
+**Texture raster (primaria, robusta ovunque)**
+- Asset grayscale `apps/admin/public/textures/enso-sumi.png` (1024², bianco=inchiostro su nero) — vera pennellata con setole, vuoti *dry-brush*, testa bagnata, coda affusolata, grana. Generato/riproducibile via `docs/design/enso-gen.html` (bake su canvas, screenshot del `#c`).
+- **Tinta cintura**: la texture fa da **alpha mask** (luminanza) su un fill del colore-cintura del grado target (`gradeBeltColor`; nero sumi al Dan). Colore dinamico, texture statica.
+- **Nessun filtro live pesante** → identico su ogni browser, portabile su mobile (`react-native-svg` non supporta i filtri SVG).
 
-**Mobile (react-native-svg)**: i filtri SVG sono limitati; portare il fascio di setole (path + dash) che regge da solo, con filtro ridotto o assente. La forma/taper danno già il carattere brush; la grana fine è un plus.
+**Procedurale (artistico + fallback)**
+- Fascio di ~22 setole (stessa geometria `A0`/`SPAN`) con taper e gappy dry-brush. Valore artistico e **fallback automatico** se la texture non carica (`onerror` → `texOk=false`). Piccolo `feTurbulence`/displacement solo qui (dove i filtri esistono).
+
+**Comune**
+- **Reveal progressivo**: maschera ad **arco** (path centerline `A0..SPAN`) che cresce con `ore/minHours`; la pennellata «si disegna» e **chiude il cerchio** al requisito. Solo la maschera anima (texture statica → performante). `prefers-reduced-motion` → stato finale, niente animazione.
+- **Ghost**: enso completo a `opacity ~0.06` = «memoria della carta».
+- **Geometria condivisa** (`A0=140°`, `SPAN≈313°`, `R`, band) tra texture, reveal e procedurale → allineamento per costruzione. **Se rigeneri la texture, mantieni `A0`/`SPAN` sincronizzati** tra `enso-gen.html` e il componente.
+
+**Mobile (react-native-svg)**: usare la **stessa texture** via `<Image>`+`<Mask>` (portabile) + reveal con `<Path>`/`stroke-dasharray`; il fascio procedurale resta come fallback (path, niente filtri). Forma/taper/texture reggono il carattere su entrambe le piattaforme.
 
 ## 6. Quality floor (sempre)
 

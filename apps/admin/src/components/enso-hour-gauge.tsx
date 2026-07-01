@@ -20,64 +20,68 @@ const BELT_VAR: Record<BeltColor, string> = {
   black: "var(--color-belt-black)",
 };
 
-interface Bristle {
-  d: string;
-  opacity: number;
-  width: number;
-  dash?: string;
-}
+// Geometry baked into the sumi texture (public/textures/enso-sumi.png, 1024²).
+// Keep in sync with docs/design/enso-gen.html: head at A0, sweep SPAN clockwise.
+const TEX = 1024;
+const T_R = 360;
+const T_BAND = 96;
+const A0 = (140 * Math.PI) / 180;
+const SPAN = 0.87 * 2 * Math.PI; // ~313° → ~47° opening at the bottom
+const TEXTURE_SRC = "/textures/enso-sumi.png";
 
 const rnd = (s: number) => {
   const x = Math.sin(s * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 };
 
+const polar = (cx: number, cy: number, r: number, a: number) =>
+  `${(cx + r * Math.cos(a)).toFixed(2)} ${(cy + r * Math.sin(a)).toFixed(2)}`;
+
+/** Arc centerline path from a0 to a1 (clockwise, y-down). */
+function arcPath(cx: number, cy: number, r: number, a0: number, a1: number): string {
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  return `M ${polar(cx, cy, r, a0)} A ${r} ${r} 0 ${large} 1 ${polar(cx, cy, r, a1)}`;
+}
+
+interface Bristle { d: string; opacity: number; width: number; dash?: string }
+
 /**
- * Build a bundle of thin bristle strokes following the arc. The bundle's
- * half-width tapers (heavy wet head → fine pointed tail); bristles fan out at
- * the head and converge at the tail. Outer bristles run shorter/gappier (dry
- * edges); a few overrun as whiskers. This simulates real brush bristles.
+ * Procedural bristle bundle (artistic + cross-platform fallback when the raster
+ * texture is unavailable). Follows the same arc geometry (A0..SPAN) so it aligns
+ * with the reveal mask. Tapered head→tail, dry-brush gaps.
  */
-function buildBristles(cx: number, cy: number, r: number, arc: number, wmax: number, seed: number): Bristle[] {
+function buildBristles(cx: number, cy: number, r: number, band: number, seed: number): Bristle[] {
   const NB = 22;
-  const NP = 90;
+  const NP = 96;
   const env = (t: number) => {
-    let w = Math.pow(1 - t, 0.5);
-    w = 0.32 + 0.68 * w;
-    if (t > 0.8) w *= Math.max(0, (1 - t) / 0.2);
+    let w = Math.pow(1 - t, 0.55);
+    w = 0.3 + 0.7 * w;
+    if (t > 0.82) w *= Math.max(0, (1 - t) / 0.18);
     if (t < 0.05) w *= 0.55 + 0.45 * (t / 0.05);
-    w *= 0.85 + 0.25 * (0.5 + 0.5 * Math.sin(t * 30 + seed));
-    return wmax * w;
+    return band * w;
   };
   const out: Bristle[] = [];
   for (let b = 0; b < NB; b++) {
     const u = (b / (NB - 1)) * 2 - 1;
     const edge = Math.abs(u);
-    const start = -0.02 * rnd(seed + b) * (0.5 + edge);
-    const overrun = edge > 0.75 ? 0.04 * rnd(seed * 2 + b) : 0;
-    const end = Math.min(1, (arc / (2 * Math.PI)) * (1 - 0.18 * edge * rnd(seed * 3 + b)) + overrun);
-    const jitter = (rnd(seed * 5 + b) - 0.5) * 0.1;
+    const end = Math.min(1, 1 - 0.16 * edge * rnd(seed * 3 + b));
     let d = "";
     let started = false;
     for (let i = 0; i <= NP; i++) {
-      const tt = i / NP;
-      const t = start + tt * (end - start);
-      if (t < 0 || t > 1.02) continue;
-      const th = t * arc; // theta0 = 0
-      const off = (u * 0.94 + jitter) * env(t);
-      const wob = Math.sin(t * 60 + b * 3) * 0.6;
-      const rad = r + off + wob;
-      const x = (cx + rad * Math.cos(th)).toFixed(2);
-      const y = (cy + rad * Math.sin(th)).toFixed(2);
-      d += (started ? " L" : "M") + x + " " + y;
+      const t = (i / NP) * end;
+      const conv = 0.28 + 0.72 * Math.pow(1 - t, 0.7);
+      const wob = Math.sin(t * 26 + b * 4) * 1.6;
+      const rad = r + u * env(t) * conv + wob;
+      const ang = A0 + t * SPAN;
+      d += (started ? " L" : "M") + polar(cx, cy, rad, ang);
       started = true;
     }
     if (!started) continue;
-    const width = (2 * wmax) / NB * 1.55;
+    const width = ((2 * band) / NB) * 1.5;
     const opacity = 0.95 - 0.4 * edge * rnd(seed * 7 + b);
     const dash =
       edge > 0.5
-        ? `${(6 + 18 * rnd(seed * 9 + b)).toFixed(1)} ${(2 + 5 * rnd(seed * 11 + b)).toFixed(1)}`
+        ? `${(5 + 16 * rnd(seed * 9 + b)).toFixed(1)} ${(2 + 5 * rnd(seed * 11 + b)).toFixed(1)}`
         : undefined;
     out.push({ d, opacity, width, dash });
   }
@@ -94,11 +98,12 @@ interface EnsoHourGaugeProps {
 /**
  * Signature element — the Monte Ore as an *enso* (zen brush circle).
  *
- * Not a geometric ring: a real sumi brushstroke the Aikidoka imprints over time.
- * Rendered as a bundle of bristles (dry-brush voids, fiber streaks, tapered tail)
- * in the belt color of the target grade. A growing arc mask reveals the stroke as
- * hours accrue; the circle closes when the requirement is met.
- * Ref: docs/design/DESIGN-LANGUAGE.md («Ogni Ora, Una Pennellata»).
+ * A real sumi brushstroke the Aikidoka imprints over time: a grayscale brush
+ * texture (public/textures/enso-sumi.png) tinted to the target grade's belt
+ * colour, revealed by a growing arc mask as hours accrue; the circle closes at
+ * the requirement. A procedural bristle bundle is the cross-platform fallback
+ * (and artistic layer) when the texture is unavailable.
+ * Ref: docs/design/DESIGN-LANGUAGE.md §5a («Ogni Ora, Una Pennellata»).
  */
 export function EnsoHourGauge({
   currentGrade,
@@ -116,22 +121,29 @@ export function EnsoHourGauge({
   const fraction =
     minHours > 0 ? Math.min(1, accumulatedHours / minHours) : result.nominationOnly ? 1 : 0;
 
+  const scale = size / TEX;
   const cx = size / 2;
   const cy = size / 2;
-  const r = (size - 44) / 2;
-  const wmax = 15;
-  const gap = 0.1;
-  const fullArc = 2 * Math.PI * (1 - gap);
-  const arc = fullArc * fraction;
-  const C = 2 * Math.PI * r;
-  const drawnLen = C * (1 - gap) * fraction;
+  const r = T_R * scale;
+  const band = T_BAND * scale;
 
-  // Bristle bundles are deterministic — compute once.
-  const seed = 7;
-  const body = useMemo(() => buildBristles(cx, cy, r, arc, wmax, seed), [cx, cy, r, arc]);
-  const ghost = useMemo(() => buildBristles(cx, cy, r, fullArc, wmax * 0.8, seed + 40), [cx, cy, r, fullArc]);
+  // Texture availability → fallback to procedural bristles on error.
+  const [texOk, setTexOk] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    const img = new Image();
+    img.onerror = () => {
+      if (alive) setTexOk(false);
+    };
+    img.src = TEXTURE_SRC;
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  // Reveal the stroke by growing an arc mask (cheap; bristles stay static).
+  const bristles = useMemo(() => buildBristles(cx, cy, r, band, 7), [cx, cy, r, band]);
+
+  // Reveal by growing an arc mask along the stroke (cheap; texture stays static).
   const [progress, setProgress] = useState(0);
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -144,8 +156,13 @@ export function EnsoHourGauge({
   }, [fraction]);
 
   const uid = useId().replace(/:/g, "");
-  const fBrush = `enso-brush-${uid}`;
+  const mInk = `enso-ink-${uid}`;
   const mReveal = `enso-reveal-${uid}`;
+  const fBrush = `enso-brush-${uid}`;
+
+  const arcCenter = arcPath(cx, cy, r, A0, A0 + SPAN);
+  const arcPathLen = r * SPAN;
+  const drawn = arcPathLen * fraction * progress;
 
   return (
     <div className="flex flex-col items-center">
@@ -154,51 +171,63 @@ export function EnsoHourGauge({
           width={size}
           height={size}
           viewBox={`0 0 ${size} ${size}`}
-          style={{ transform: "rotate(133deg)" }}
           role="img"
           aria-label={`Monte ore ${Math.round(accumulatedHours)} verso ${gradeLabel(target)}`}
         >
           <defs>
-            <filter id={fBrush} x="-30%" y="-30%" width="160%" height="160%">
-              <feTurbulence type="fractalNoise" baseFrequency="0.013 0.017" numOctaves={2} seed={seed} result="warp" />
-              <feDisplacementMap in="SourceGraphic" in2="warp" scale={6} result="d1" />
-              <feTurbulence type="turbulence" baseFrequency="0.7 0.7" numOctaves={2} seed={seed + 3} result="grain" />
-              <feDisplacementMap in="d1" in2="grain" scale={2.6} result="d2" />
-              <feComponentTransfer in="d2">
-                <feFuncA type="gamma" amplitude={1.2} exponent={1.35} offset={-0.075} />
-              </feComponentTransfer>
-            </filter>
+            {/* Ink alpha from the grayscale texture (white ink → visible) */}
+            <mask id={mInk}>
+              <image href={TEXTURE_SRC} x={0} y={0} width={size} height={size} preserveAspectRatio="none" />
+            </mask>
+            {/* Progressive reveal — a thick arc that grows head→tail */}
             <mask id={mReveal}>
-              <circle
-                cx={cx}
-                cy={cy}
-                r={r}
+              <path
+                d={arcCenter}
                 fill="none"
                 stroke="white"
-                strokeWidth={2 * wmax + 26}
+                strokeWidth={2 * band + 20}
                 strokeLinecap="round"
-                strokeDasharray={`${drawnLen * progress} ${C}`}
+                pathLength={arcPathLen}
+                strokeDasharray={`${drawn} ${arcPathLen + 10}`}
                 style={{ transition: "stroke-dasharray 1300ms cubic-bezier(0.22, 1, 0.36, 1)" }}
               />
             </mask>
+            {/* Subtle edge roughening for the procedural fallback */}
+            <filter id={fBrush} x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.014 0.02" numOctaves={2} seed={7} result="w" />
+              <feDisplacementMap in="SourceGraphic" in2="w" scale={5} />
+            </filter>
           </defs>
 
           {/* Paper memory — faint full enso the path completes into */}
-          <g opacity={0.06} filter={`url(#${fBrush})`}>
-            {ghost.map((br, i) => (
-              <path key={i} d={br.d} fill="none" stroke="var(--color-sumi)" strokeOpacity={br.opacity}
-                strokeWidth={br.width} strokeLinecap="round" strokeDasharray={br.dash} />
-            ))}
-          </g>
-
-          {/* The brushstroke — bristle bundle in the belt color, revealed by the mask */}
-          {drawnLen > 0.5 && (
-            <g filter={`url(#${fBrush})`} mask={`url(#${mReveal})`}>
-              {body.map((br, i) => (
-                <path key={i} d={br.d} fill="none" stroke={beltColor} strokeOpacity={br.opacity}
+          {texOk ? (
+            <g opacity={0.06} mask={`url(#${mInk})`}>
+              <rect x={0} y={0} width={size} height={size} fill="var(--color-sumi)" />
+            </g>
+          ) : (
+            <g opacity={0.06} filter={`url(#${fBrush})`}>
+              {bristles.map((br, i) => (
+                <path key={i} d={br.d} fill="none" stroke="var(--color-sumi)" strokeOpacity={br.opacity}
                   strokeWidth={br.width} strokeLinecap="round" strokeDasharray={br.dash} />
               ))}
-              <ellipse cx={cx + r} cy={cy} rx={wmax * 0.5} ry={wmax * 0.42} fill={beltColor} opacity={0.92} />
+            </g>
+          )}
+
+          {/* The brushstroke, belt-coloured, revealed by the growing arc */}
+          {fraction > 0.001 && (
+            <g mask={`url(#${mReveal})`}>
+              {texOk ? (
+                <g mask={`url(#${mInk})`}>
+                  <rect x={0} y={0} width={size} height={size} fill={beltColor} />
+                </g>
+              ) : (
+                <g filter={`url(#${fBrush})`}>
+                  {bristles.map((br, i) => (
+                    <path key={i} d={br.d} fill="none" stroke={beltColor} strokeOpacity={br.opacity}
+                      strokeWidth={br.width} strokeLinecap="round" strokeDasharray={br.dash} />
+                  ))}
+                </g>
+              )}
             </g>
           )}
         </svg>

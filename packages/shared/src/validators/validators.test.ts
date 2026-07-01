@@ -5,6 +5,8 @@ import {
   profileCreateSchema,
   eventCreateSchema,
   attendanceCreateSchema,
+  attendanceManualInputSchema,
+  attendanceStatusUpdateSchema,
   dojoConfigSchema,
   checkInTokenSchema,
 } from './index';
@@ -73,6 +75,36 @@ describe('attendanceCreateSchema', () => {
   });
   it('rejects negative weighted_hours', () => {
     expect(attendanceCreateSchema.safeParse({ ...base, weighted_hours: -2 }).success).toBe(false);
+  });
+});
+
+describe('attendanceManualInputSchema', () => {
+  const base = { event_id: UUID, profile_id: UUID, effective_hours: 1, method: 'roll_call' as const };
+  it('accepts valid manual input and defaults event_role to participant', () => {
+    expect(attendanceManualInputSchema.parse(base).event_role).toBe('participant');
+  });
+  it('rejects non-positive effective_hours', () => {
+    expect(attendanceManualInputSchema.safeParse({ ...base, effective_hours: 0 }).success).toBe(false);
+    expect(attendanceManualInputSchema.safeParse({ ...base, effective_hours: -1 }).success).toBe(false);
+  });
+  it('rejects invalid method enum', () => {
+    expect(attendanceManualInputSchema.safeParse({ ...base, method: 'invalid' }).success).toBe(false);
+  });
+  it('rejects malformed uuids', () => {
+    expect(attendanceManualInputSchema.safeParse({ ...base, event_id: 'x' }).success).toBe(false);
+  });
+});
+
+describe('attendanceStatusUpdateSchema', () => {
+  it('accepts confirmed/rejected with optional notes', () => {
+    expect(attendanceStatusUpdateSchema.parse({ status: 'confirmed' }).status).toBe('confirmed');
+    expect(attendanceStatusUpdateSchema.parse({ status: 'rejected', notes: 'assenza ingiustificata' }).notes).toBe('assenza ingiustificata');
+  });
+  it('rejects status outside confirmed/rejected (e.g. registered)', () => {
+    expect(attendanceStatusUpdateSchema.safeParse({ status: 'registered' }).success).toBe(false);
+  });
+  it('rejects missing status', () => {
+    expect(attendanceStatusUpdateSchema.safeParse({ notes: 'x' }).success).toBe(false);
   });
 });
 

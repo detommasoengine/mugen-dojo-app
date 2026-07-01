@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{
+    --sumi:#1b1a17; --ai:#20374d; --washi:#e9eae4; --washi-raised:#f3f2ed;
+    --belt-blue:#2e5a86; --belt-black:#1b1a17;
+  }
+  body{margin:0;background:var(--washi);font-family:system-ui;display:flex;gap:32px;
+       align-items:center;justify-content:center;min-height:100vh;flex-wrap:wrap}
+  .card{background:var(--washi-raised);border:1px solid #d3d5cc;border-radius:16px;
+        padding:28px;display:flex;flex-direction:column;align-items:center}
+  .wrap{position:relative}
+  .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .num{font-family:ui-monospace,monospace;font-size:38px;font-weight:600;color:var(--sumi)}
+  .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#6b6862}
+  .cap{margin-top:14px;font-size:13px;color:#6b6862}
+</style>
+</head>
+<body>
+<script>
+const rnd=(s)=>{const x=Math.sin(s*127.1+311.7)*43758.5453;return x-Math.floor(x);};
+
+// Bundle of thin bristles. The bundle's half-width tapers along the arc (heavy
+// head -> fine tail); each bristle is offset radially and scaled by that width,
+// so bristles fan out at the head and converge to a point at the tail. Outer
+// bristles run shorter and gappier (dry edges); a few overrun as whiskers.
+function bristles({cx,cy,r,theta0,arc,wmax,belt,seed}){
+  const NB=22, NP=90;
+  const env=(t)=>{ // half-width envelope
+    let w=Math.pow(1-t,0.5); w=0.32+0.68*w;
+    if(t>0.8) w*=Math.max(0,(1-t)/0.2);
+    if(t<0.05) w*=0.55+0.45*(t/0.05);
+    w*=0.85+0.25*(0.5+0.5*Math.sin(t*30+seed));
+    return wmax*w;
+  };
+  let paths='';
+  for(let b=0;b<NB;b++){
+    const u=(b/(NB-1))*2-1;                       // -1..1 across width
+    const edge=Math.abs(u);
+    const start=-0.02*rnd(seed+b)*(0.5+edge);     // some bristles touch down early
+    const overrun=(edge>0.75? 0.04*rnd(seed*2+b):0); // outer bristles can whisker out
+    const end=Math.min(1, arc/ (2*Math.PI) * (1 - 0.18*edge*rnd(seed*3+b)) + overrun);
+    const jitter=(rnd(seed*5+b)-0.5)*0.10;
+    let d='', started=false;
+    for(let i=0;i<=NP;i++){
+      const tt=i/NP; const t=start+tt*(end-start); if(t<0||t>1.02) continue;
+      const th=theta0+t*arc;
+      const off=(u*0.94+jitter)*env(t);
+      const wob=Math.sin(t*60+b*3)*0.6;           // fine fiber wave
+      const rad=r+off+wob;
+      const x=(cx+rad*Math.cos(th)).toFixed(2), y=(cy+rad*Math.sin(th)).toFixed(2);
+      d+=(started?' L':'M')+x+' '+y; started=true;
+    }
+    if(!started) continue;
+    const sw=(2*wmax/NB)*1.55;
+    const op=(0.95-0.4*edge*rnd(seed*7+b)).toFixed(2);
+    // dry breaks: outer bristles more broken
+    const dash= edge>0.5 ? `dasharray="${(6+18*rnd(seed*9+b)).toFixed(1)} ${(2+5*rnd(seed*11+b)).toFixed(1)}"` : '';
+    paths+=`<path d="${d}" fill="none" stroke="${belt}" stroke-opacity="${op}" stroke-width="${sw.toFixed(2)}" stroke-linecap="round" ${dash?('stroke-'+dash):''}/>`;
+  }
+  return paths;
+}
+function enso({size=240, fraction=0.66, belt='var(--belt-blue)', seed=7, id='a'}){
+  const cx=size/2, cy=size/2, r=(size-44)/2;
+  const gap=0.1, full=2*Math.PI*(1-gap), arc=full*fraction, wmax=15;
+  const body=bristles({cx,cy,r,theta0:0,arc,wmax,belt,seed});
+  const ghost=bristles({cx,cy,r,theta0:0,arc:full,wmax:wmax*0.8,belt:'var(--sumi)',seed:seed+40});
+  const [hx,hy]=[cx+r,cy];
+  return `
+  <div class="wrap" style="width:${size}px;height:${size}px">
+   <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(133deg)">
+    <defs>
+     <filter id="brush-${id}" x="-30%" y="-30%" width="160%" height="160%">
+       <feTurbulence type="fractalNoise" baseFrequency="0.013 0.017" numOctaves="2" seed="${seed}" result="warp"/>
+       <feDisplacementMap in="SourceGraphic" in2="warp" scale="6" result="d1"/>
+       <feTurbulence type="turbulence" baseFrequency="0.7 0.7" numOctaves="2" seed="${seed+3}" result="grain"/>
+       <feDisplacementMap in="d1" in2="grain" scale="2.6" result="d2"/>
+       <feComponentTransfer in="d2"><feFuncA type="gamma" amplitude="1.2" exponent="1.35" offset="-0.075"/></feComponentTransfer>
+     </filter>
+    </defs>
+    <g opacity="0.06" filter="url(#brush-${id})">${ghost}</g>
+    <g filter="url(#brush-${id})">
+      ${body}
+      <ellipse cx="${hx}" cy="${hy}" rx="${wmax*0.5}" ry="${wmax*0.42}" fill="${belt}" opacity="0.92"/>
+    </g>
+   </svg>
+   <div class="center"><span class="num">${Math.round(fraction*120)}</span><span class="lbl">ore</span></div>
+  </div>`;
+}
+const states=[
+  {fraction:0.34, belt:'var(--belt-blue)', id:'a', cap:'34% · verso 1° Kyu'},
+  {fraction:0.66, belt:'var(--belt-blue)', id:'b', cap:'66% · verso 1° Kyu'},
+  {fraction:1.0,  belt:'var(--belt-black)',id:'c', cap:'100% · cerchio chiuso'},
+];
+document.body.innerHTML = states.map(s=>
+  `<div class="card">${enso(s)}<div class="cap">${s.cap}</div></div>`).join('');
+</script>
+</body>
+</html>

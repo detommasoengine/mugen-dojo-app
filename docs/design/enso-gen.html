@@ -33,33 +33,53 @@ const pt = (t, off) => {
   return [CX + Math.cos(ang) * rr, CY + Math.sin(ang) * rr];
 };
 
-// --- WET BODY: dense pastose core, built by many soft ribbons ---
-for (let pass = 0; pass < 10; pass++){
-  const uc = (rnd(pass * 5 + 1) - 0.5) * 0.5;   // core wander
+// --- WET BODY: dense pastose core as a TAPERED filled ribbon ---
+// Width follows halfBand(t) -> thins to a point at the tail (clean taper).
+const NR = 300;
+function ribbon(coreFactor, alpha, seed){
   g.beginPath();
-  for (let i = 0; i <= 260; i++){
-    const t = i / 260;
-    const hb = halfBand(t);
-    const [x, y] = pt(t, uc * hb);
+  for (let i = 0; i <= NR; i++){
+    const t = i / NR;
+    const hb = halfBand(t) * coreFactor;
+    const j = Math.sin(t * 34 + seed) * 1.4;
+    const [x, y] = pt(t, hb + j);
     if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
   }
-  // width follows the taper; head fat, tail thin
-  g.strokeStyle = 'rgba(255,255,255,0.05)';
-  g.lineWidth = (BAND * 1.15) * (0.85 - 0.15 * pass / 10);
-  g.stroke();
+  for (let i = NR; i >= 0; i--){
+    const t = i / NR;
+    const hb = halfBand(t) * coreFactor;
+    const j = Math.sin(t * 34 + seed + 5) * 1.4;
+    const [x, y] = pt(t, -hb + j);
+    g.lineTo(x, y);
+  }
+  g.closePath();
+  g.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+  g.fill();
 }
-// denser wet at the head half
-for (let pass = 0; pass < 8; pass++){
+// narrow dense core -> wider fainter body: bright inky centre fading to edges,
+// tapering to a point at the tail because halfBand -> 0 there.
+ribbon(0.30, 0.20, 1);
+ribbon(0.46, 0.13, 4);
+ribbon(0.62, 0.09, 8);
+ribbon(0.78, 0.06, 12);
+// extra wet only in the head half (t<0.55), still tapered by halfBand
+(function(){
   g.beginPath();
-  for (let i = 0; i <= 160; i++){
-    const t = (i / 160) * 0.5;
-    const [x, y] = pt(t, (rnd(pass+7)-0.5) * halfBand(t) * 0.6);
+  const cut = 0.55;
+  for (let i = 0; i <= NR; i++){
+    const t = (i / NR) * cut;
+    const [x, y] = pt(t, halfBand(t) * 0.7);
     if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
   }
-  g.strokeStyle = 'rgba(255,255,255,0.06)';
-  g.lineWidth = BAND * (0.9 - 0.06 * pass);
-  g.stroke();
-}
+  for (let i = NR; i >= 0; i--){
+    const t = (i / NR) * cut;
+    const [x, y] = pt(t, -halfBand(t) * 0.7);
+    g.lineTo(x, y);
+  }
+  g.closePath();
+  g.fillStyle = 'rgba(255,255,255,0.10)';
+  g.fill();
+})();
 
 // --- BRISTLE FIBER (denser) ---
 const NB = 46, NP = 220;

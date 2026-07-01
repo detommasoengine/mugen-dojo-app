@@ -8,8 +8,16 @@ import {
 } from "@mugen/shared";
 import { Card, CardContent, CardLabel } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { eventTypeLabel } from "@/lib/event-type-label";
+import { attendanceStatusLabel } from "@/lib/attendance-status-label";
 import { AttendanceTable, type AttendanceRow } from "./attendance-table";
 import { AttendanceForm } from "./attendance-form";
 
@@ -120,6 +128,9 @@ export default async function AttendancePage({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Registra presenza</DialogTitle>
+              <DialogDescription>
+                Registra la presenza di un Aikidoka a un evento del Dojo.
+              </DialogDescription>
             </DialogHeader>
             <AttendanceForm events={events ?? []} aikidokas={aikidokas ?? []} />
           </DialogContent>
@@ -159,7 +170,7 @@ export default async function AttendancePage({
           <select id="status" name="status" defaultValue={status} className="h-9 rounded-md border border-border bg-washi-raised px-3 text-sm">
             <option value="">Tutti</option>
             {STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>{attendanceStatusLabel(s)}</option>
             ))}
           </select>
         </div>
